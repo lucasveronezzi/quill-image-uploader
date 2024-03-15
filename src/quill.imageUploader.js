@@ -4,8 +4,9 @@ class ImageUploader {
     constructor(quill, options) {
         this.quill = quill;
         this.options = options;
-        this.range = null;             
-        this.placeholderDelta = null; 
+        this.range = null;
+        this.placeholderDelta = null;
+        this.placeholderLeaf = null;
 
         if (typeof this.options.upload !== "function")
             console.warn(
@@ -153,32 +154,43 @@ class ImageUploader {
 
     insertBase64Image(url) {
         const range = this.range;
-                
+
+        this.quill.insertEmbed(range.index, 'break', true, 'user');
+
+        range.index++;
+
         this.placeholderDelta = this.quill.insertEmbed(
             range.index,
             LoadingImage.blotName,
             `${url}`,
             "user"
         );
+
+        this.placeholderLeaf = this.quill.getLeaf(range.index);
+
+        const newRange = this.quill.getSelection();
+
+        newRange.index += 3;
+
+        this.quill.insertText(newRange.index, '\n', 'user');
+
+        this.quill.setSelection(newRange, 'user');
     }
 
     insertToEditor(url) {
-        const range = this.range;        
+        const imageIndex = this.quill.getIndex(this.placeholderLeaf[0]) + this.placeholderLeaf[1];
 
-        const lengthToDelete = this.calculatePlaceholderInsertLength();        
-        
+        const lengthToDelete = this.calculatePlaceholderInsertLength();
+
         // Delete the placeholder image
-        this.quill.deleteText(range.index, lengthToDelete, "user");
+        this.quill.deleteText(imageIndex, lengthToDelete, "user");
         // Insert the server saved image
-        this.quill.insertEmbed(range.index, "image", `${url}`, "user");
-
-        range.index++;
-        this.quill.setSelection(range, "user");
+        this.quill.insertEmbed(imageIndex, "image", `${url}`, "user");
     }
 
     // The length of the insert delta from insertBase64Image can vary depending on what part of the line the insert occurs
     calculatePlaceholderInsertLength() {
-        return this.placeholderDelta.ops.reduce((accumulator, deltaOperation) => {            
+        return this.placeholderDelta.ops.reduce((accumulator, deltaOperation) => {
             if (deltaOperation.hasOwnProperty('insert'))
                 accumulator++;
 
@@ -186,7 +198,7 @@ class ImageUploader {
         }, 0);
     }
 
-    removeBase64Image() {        
+    removeBase64Image() {
         const range = this.range;
         const lengthToDelete = this.calculatePlaceholderInsertLength();
 
