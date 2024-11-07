@@ -194,7 +194,7 @@ class ImageUploader {
     // Insert the server saved image
     this.quill.insertEmbed(imageIndex, 'image', `${url}`, 'user');
 
-    if (newRange.index === imageIndex + 1) {
+    if (newRange && newRange.index === imageIndex + 1) {
       this.quill.setSelection(newRange.index + 1, 'user');
     }
 
